@@ -94,7 +94,6 @@ ENV/
 
 # Custom stuff
 env.sh
-target_config.json
 .autoenv.zsh
 
 rsa-key
@@ -103,4 +102,6 @@ singer-check-tap-data
 state.json
 
 
+target_config.json
+tap_config.json
 document_types.md
