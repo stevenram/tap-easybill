@@ -20,9 +20,6 @@
         "subject": {
           "type": ["null", "string"]
         },
-        "message": {
-          "type": ["null", "string"]
-        },
         "date": {
           "type": ["null", "string"],
           "format": "date"

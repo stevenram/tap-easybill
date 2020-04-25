@@ -6,7 +6,8 @@ from singer import utils, metadata
 from singer.catalog import Catalog, CatalogEntry
 from singer.schema import Schema
 
-from tap_easybill.request_data import tap_data
+from tap_easybill.request import tap_api
+from tap_easybill.tidy import tidy_response
 
 
 REQUIRED_CONFIG_KEYS = ["start_date", "username", "password"]
@@ -33,13 +34,13 @@ def discover():
     streams = []
     for stream_id, schema in raw_schemas.items():
 
-        # TODO: populate any metadata and stream's key properties here..
-        mock_mdata = metadata.get_standard_metadata(schema.to_dict())
-        metadata.write(metadata.to_map(mock_mdata), (), "selected", True)
-        mock_keyprops = ['id']
+        # Generate minimum required metadata and select every stream
+        min_metadata = metadata.get_standard_metadata(schema.to_dict())
+        metadata.write(metadata.to_map(min_metadata), (), "selected", True)
 
-        stream_metadata = mock_mdata
-        key_properties = mock_keyprops
+        stream_metadata = min_metadata
+        key_properties = ['id'] # So far all of the streams have this key property
+
         streams.append(
             CatalogEntry(
                 tap_stream_id=stream_id,
@@ -56,10 +57,12 @@ def discover():
                 replication_method=None,
             )
         )
+
     return Catalog(streams)
 
 
 def sync(config, state, catalog):
+
     """ Sync data from tap source """
     # Loop over selected streams in catalog
     for stream in catalog.get_selected_streams(state):
@@ -75,11 +78,13 @@ def sync(config, state, catalog):
         )
 
         max_bookmark = None
-        for row in tap_data(stream.tap_stream_id):
+        for row in tap_api(stream.tap_stream_id):
+
             # TODO: place type conversions or transformations here
+            tidy_row = tidy_response(stream, row)
 
             # write one or more rows to the stream:
-            singer.write_records(stream.tap_stream_id, [row])
+            singer.write_records(stream.tap_stream_id, [tidy_row])
             if bookmark_column:
                 if is_sorted:
                     # update bookmark to latest value
