@@ -10,9 +10,8 @@ from tap_easybill.request import tap_api
 from tap_easybill.tidy import tidy_response
 
 
-REQUIRED_CONFIG_KEYS = ["start_date", "username", "password"]
+REQUIRED_CONFIG_KEYS = []
 LOGGER = singer.get_logger()
-
 
 def get_abs_path(path):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
@@ -40,6 +39,10 @@ def discover():
 
         stream_metadata = min_metadata
         key_properties = ['id'] # So far all of the streams have this key property
+        if stream_id in ('documents'):
+            replication_key = 'edited_at_rk'
+        else:
+            replication_key = 'id'
 
         streams.append(
             CatalogEntry(
@@ -48,13 +51,13 @@ def discover():
                 schema=schema,
                 key_properties=key_properties,
                 metadata=stream_metadata,
-                replication_key=None,
+                replication_key=replication_key,
                 is_view=None,
                 database=None,
                 table=None,
                 row_count=None,
                 stream_alias=None,
-                replication_method=None,
+                replication_method='INCREMENTAL'
             )
         )
 
@@ -69,7 +72,6 @@ def sync(config, state, catalog):
         LOGGER.info("Syncing stream:" + stream.tap_stream_id)
 
         bookmark_column = stream.replication_key
-        is_sorted = True  # TODO: indicate whether data is sorted ascending on bookmark value
 
         singer.write_schema(
             stream_name=stream.tap_stream_id,
@@ -77,24 +79,42 @@ def sync(config, state, catalog):
             key_properties=stream.key_properties,
         )
 
-        max_bookmark = None
-        for row in tap_api(stream.tap_stream_id):
+        max_bookmark = singer.get_bookmark(state, stream.tap_stream_id, bookmark_column)
+        page_state = singer.get_bookmark(state, stream.tap_stream_id, 'page')
 
-            # TODO: place type conversions or transformations here
-            tidy_row = tidy_response(stream, row)
 
-            # write one or more rows to the stream:
-            singer.write_records(stream.tap_stream_id, [tidy_row])
-            if bookmark_column:
-                if is_sorted:
-                    # update bookmark to latest value
-                    singer.write_state({stream.tap_stream_id: row[bookmark_column]})
-                else:
-                    # if data unsorted, save max value until end of writes
-                    max_bookmark = max(max_bookmark, row[bookmark_column])
-        if bookmark_column and not is_sorted:
-            singer.write_state({stream.tap_stream_id: max_bookmark})
-    return
+        for row, page in tap_api(stream.tap_stream_id, page_state):
+
+            # TO DO: Place type conversions or transformations here
+            row = tidy_response(stream, row)
+
+            # Write one or more rows to the stream:
+            if row[bookmark_column] > max_bookmark:
+                singer.write_records(stream.tap_stream_id, [row])
+                new_max_bookmark = max(max_bookmark, row[bookmark_column])
+
+                singer.write_bookmark(state, stream.tap_stream_id, bookmark_column, new_max_bookmark)
+                singer.write_bookmark(state, stream.tap_stream_id, 'page', page)
+                singer.write_state(state)
+
+            # Write state messages
+
+        #     if bookmark_column:
+        #         if is_sorted:
+        #             # update bookmark to latest value
+        #             singer.write_state({stream.tap_stream_id: row[bookmark_column]})
+        #         else:
+        #             # if data unsorted, save max value until end of writes
+        #             max_bookmark = max(max_bookmark, row[bookmark_column])
+        # if bookmark_column and not is_sorted:
+        #     singer.write_state({stream.tap_stream_id: max_bookmark})
+
+    return state
+
+
+def save_state_json(state):
+    with open('state.json', 'w') as file:
+        json.dump(state, file)
 
 
 @utils.handle_top_exception(LOGGER)
@@ -102,18 +122,22 @@ def main():
     # Parse command line arguments
     args = utils.parse_args(REQUIRED_CONFIG_KEYS)
 
+    # Load state from json or initialize empty state
+    state = args.state or {}
+    print('========== STATE LOADED AS ', state)
+
+    # Load config from json
+    config = args.config
+
     # If discover flag was passed, run discovery mode and dump output to stdout
     if args.discover:
         catalog = discover()
         catalog.dump()
     # Otherwise run in sync mode
     else:
-        if args.catalog:
-            catalog = args.catalog
-        else:
-            catalog = discover()
-        sync(args.config, args.state, catalog)
-
+        catalog = args.catalog or discover()
+        state = sync(config, state, catalog)
+        save_state_json(state)
 
 if __name__ == "__main__":
     main()

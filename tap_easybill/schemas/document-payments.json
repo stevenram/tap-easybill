@@ -2,36 +2,12 @@
     "type": ["null", "object"],
     "additionalProperties": false,
     "properties": {
-        "amount": {
-          "type": ["null", "integer"]
-        },
-        "document_id": {
-          "type": ["null", "integer"]
-        },
         "id": {
           "type": ["null", "integer"]
-        },
-        "is_overdue_fee": {
-          "type": ["null", "boolean"]
-        },
-        "login_id": {
-          "type": ["null", "integer"]
-        },
-        "notice": {
-          "type": ["null", "string"]
         },
         "payment_at": {
           "type": ["null", "string"],
           "format": "date"
-        },
-        "type": {
-          "type": ["null", "string"]
-        },
-        "provider": {
-          "type": ["null", "string"]
-        },
-        "reference": {
-          "type": ["null", "string"]
         }
     }
 }

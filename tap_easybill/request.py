@@ -3,15 +3,16 @@ import json
 import os
 
 
-def tap_api(stream):
+def tap_api(stream, page_state):
 
     endpoint = 'https://api.easybill.de/rest/v1/'+stream
     headers = {'Authorization': 'Bearer ' + os.environ['EASYBILL_KEY'] }
 
-    next_page = 1
+    page = page_state or 1
     while True:
-        # params = {'page': next_page}
-        params = {'page': next_page, 'limit': 1}
+        # params = {'page': page}
+        params = {'page': page, 'limit': 20}
+        print('======== PAGE ', page)
         r = requests.get(endpoint, headers=headers, params=params)
         r = r.json()
 
@@ -19,10 +20,10 @@ def tap_api(stream):
 
         number_datapoints = len(data)
         for each in range(0, number_datapoints):
-            yield data[each]
+            yield data[each], page
 
         # if r['page'] == r['pages']:
-        if r['page'] == 1:
+        if r['page'] == 3:
             break
         else:
-            next_page += 1
+            page += 1
