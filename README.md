@@ -2,6 +2,8 @@
 
 ## To do
 - Make clever guess on relevant page range, maybe (max page - X) and set X in config? As percentage?
+- Add `_sdc_extracted_at` timestamps
+- Handle empty state / full table replication
 - Check for string encoding problems
 - Use config for authorization
 - Add proper timezone to timestamps

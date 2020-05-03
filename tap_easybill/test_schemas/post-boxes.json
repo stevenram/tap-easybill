@@ -1,0 +1,17 @@
+{
+    "type": ["null", "object"],
+    "additionalProperties": false,
+    "properties": {
+        "id": {
+          "type": ["null", "integer"]
+        },
+        "create_at": {
+          "type": ["null", "string"],
+          "format": "date"
+        },
+        "processed_at": {
+          "type": ["null", "string"],
+          "format": "date"
+        }
+    }
+}

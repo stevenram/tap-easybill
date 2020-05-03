@@ -5,6 +5,25 @@
         "id": {
           "type": ["null", "integer"]
         },
+        "document_id": {
+          "type": ["null", "integer"]
+        },
+        "to": {
+          "type": ["null", "string"]
+        },
+        "cc": {
+          "type": ["null", "string"]
+        },
+        "from": {
+          "type": ["null", "string"]
+        },
+        "subject": {
+          "type": ["null", "string"]
+        },
+        "date": {
+          "type": ["null", "string"],
+          "format": "date"
+        },
         "create_at": {
           "type": ["null", "string"],
           "format": "date"
@@ -12,6 +31,24 @@
         "processed_at": {
           "type": ["null", "string"],
           "format": "date"
+        },
+        "send_by_self": {
+          "type": ["null", "boolean"]
+        },
+        "send_with_attachment": {
+          "type": ["null", "boolean"]
+        },
+        "type": {
+          "type": ["null", "string"]
+        },
+        "status": {
+          "type": ["null", "string"]
+        },
+        "status_msg": {
+          "type": ["null", "string"]
+        },
+        "login_id": {
+          "type": ["null", "integer"]
         }
     }
 }

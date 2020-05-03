@@ -106,7 +106,6 @@ def main():
 
     # Load state from json or initialize empty state
     state = args.state or {}
-    print('========== STATE LOADED AS ', state)
 
     # Load config from json
     config = args.config
@@ -118,8 +117,8 @@ def main():
     # Otherwise run in sync mode
     else:
         catalog = args.catalog or discover()
-        state = sync(config, state, catalog)
-        save_state_json(state)
+        new_state = sync(config, state, catalog)
+        save_state_json(new_state)
 
 if __name__ == "__main__":
     main()
