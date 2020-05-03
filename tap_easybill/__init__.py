@@ -8,6 +8,7 @@ from singer.schema import Schema
 
 from tap_easybill.request import tap_api
 from tap_easybill.tidy import tidy_response
+from tap_easybill.streams import gen_metadata, BASE_METADATA
 
 
 REQUIRED_CONFIG_KEYS = []
@@ -33,31 +34,15 @@ def discover():
     streams = []
     for stream_id, schema in raw_schemas.items():
 
-        # Generate minimum required metadata and select every stream
-        min_metadata = metadata.get_standard_metadata(schema.to_dict())
-        metadata.write(metadata.to_map(min_metadata), (), "selected", True)
-
-        stream_metadata = min_metadata
-        key_properties = ['id'] # So far all of the streams have this key property
-        if stream_id in ('documents'):
-            replication_key = 'edited_at_rk'
-        else:
-            replication_key = 'id'
+        stream_metadata = gen_metadata(stream_id, schema, BASE_METADATA)
 
         streams.append(
             CatalogEntry(
                 tap_stream_id=stream_id,
                 stream=stream_id,
                 schema=schema,
-                key_properties=key_properties,
-                metadata=stream_metadata,
-                replication_key=replication_key,
-                is_view=None,
-                database=None,
-                table=None,
-                row_count=None,
-                stream_alias=None,
-                replication_method='INCREMENTAL'
+                key_properties=metadata.get(metadata.to_map(stream_metadata), (), 'key_properties'),
+                metadata=stream_metadata
             )
         )
 
@@ -71,43 +56,40 @@ def sync(config, state, catalog):
     for stream in catalog.get_selected_streams(state):
         LOGGER.info("Syncing stream:" + stream.tap_stream_id)
 
-        bookmark_column = stream.replication_key
-
         singer.write_schema(
             stream_name=stream.tap_stream_id,
             schema=stream.schema.to_dict(),
-            key_properties=stream.key_properties,
+            key_properties=stream.key_properties
         )
 
-        max_bookmark = singer.get_bookmark(state, stream.tap_stream_id, bookmark_column)
-        page_state = singer.get_bookmark(state, stream.tap_stream_id, 'page')
+        needs_coalescing = metadata.get(metadata.to_map(stream.metadata), (), 'replication_key_coalesce')
+        replication_key = metadata.get(metadata.to_map(stream.metadata), (), 'replication_key')
+        replication_sorted = metadata.get(metadata.to_map(stream.metadata), (), 'replication_sorted')
 
+        bookmark_state = singer.get_bookmark(state, stream.tap_stream_id, 'value')
+        new_bookmark_state = bookmark_state
+        page_state = singer.get_bookmark(state, stream.tap_stream_id, 'page')
+        new_page_state = page_state
 
         for row, page in tap_api(stream.tap_stream_id, page_state):
 
-            # TO DO: Place type conversions or transformations here
-            row = tidy_response(stream, row)
+            row, bookmark_value = tidy_response(stream, row, needs_coalescing, replication_key)
 
-            # Write one or more rows to the stream:
-            if row[bookmark_column] > max_bookmark:
+            if bookmark_value > bookmark_state:
                 singer.write_records(stream.tap_stream_id, [row])
-                new_max_bookmark = max(max_bookmark, row[bookmark_column])
 
-                singer.write_bookmark(state, stream.tap_stream_id, bookmark_column, new_max_bookmark)
-                singer.write_bookmark(state, stream.tap_stream_id, 'page', page)
-                singer.write_state(state)
+                if replication_sorted and not needs_coalescing:
+                    singer.write_bookmark(state, stream.tap_stream_id, 'value', row[replication_key])
+                    singer.write_bookmark(state, stream.tap_stream_id, 'page', page)
+                    singer.write_state(state)
+                else:
+                    new_bookmark_state = max(bookmark_state, bookmark_value)
+                    new_page_state = page
 
-            # Write state messages
-
-        #     if bookmark_column:
-        #         if is_sorted:
-        #             # update bookmark to latest value
-        #             singer.write_state({stream.tap_stream_id: row[bookmark_column]})
-        #         else:
-        #             # if data unsorted, save max value until end of writes
-        #             max_bookmark = max(max_bookmark, row[bookmark_column])
-        # if bookmark_column and not is_sorted:
-        #     singer.write_state({stream.tap_stream_id: max_bookmark})
+        if new_bookmark_state > bookmark_state:
+            singer.write_bookmark(state, stream.tap_stream_id, 'value', new_bookmark_state)
+            singer.write_bookmark(state, stream.tap_stream_id, 'page', new_page_state)
+            singer.write_state(state)
 
     return state
 

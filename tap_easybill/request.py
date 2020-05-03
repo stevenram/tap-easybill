@@ -10,8 +10,8 @@ def tap_api(stream, page_state):
 
     page = page_state or 1
     while True:
-        # params = {'page': page}
-        params = {'page': page, 'limit': 20}
+        params = {'page': page}
+        # params = {'page': page, 'limit': 20}
         print('======== PAGE ', page)
         r = requests.get(endpoint, headers=headers, params=params)
         r = r.json()
@@ -22,8 +22,8 @@ def tap_api(stream, page_state):
         for each in range(0, number_datapoints):
             yield data[each], page
 
-        # if r['page'] == r['pages']:
-        if r['page'] == 3:
+        if r['page'] == r['pages']:
+        # if r['page'] == 3:
             break
         else:
             page += 1

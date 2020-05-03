@@ -13,10 +13,6 @@
             "type": ["null", "string"],
             "format": "date-time"
         },
-        "edited_at_rk": {
-          "type": ["null", "string"],
-          "format": "date-time"
-        },
         "type": {
           "type": ["null", "string"]
         }
