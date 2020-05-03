@@ -54,7 +54,7 @@ def sync(config, state, catalog):
     """ Sync data from tap source """
     # Loop over selected streams in catalog
     for stream in catalog.get_selected_streams(state):
-        LOGGER.info("Syncing stream:" + stream.tap_stream_id)
+        LOGGER.info("Syncing stream: " + stream.tap_stream_id)
 
         singer.write_schema(
             stream_name=stream.tap_stream_id,
@@ -71,7 +71,8 @@ def sync(config, state, catalog):
         page_state = singer.get_bookmark(state, stream.tap_stream_id, 'page')
         new_page_state = page_state
 
-        for row, page in tap_api(stream.tap_stream_id, page_state):
+        # for row, page in tap_api(stream.tap_stream_id, page_state):
+        for row, page in tap_api(stream, state):
 
             row, bookmark_value = tidy_response(stream, row, needs_coalescing, replication_key)
 

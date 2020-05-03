@@ -13,6 +13,7 @@ BASE_METADATA = {
     'documents': {
         'selected': True,
         'endpoint_path': '/documents',
+        'page_scan_perc': 0.25,
         'key_properties': ['id'],
         'replication_method': 'INCREMENTAL',
         'replication_key_coalesce': True,
@@ -22,6 +23,7 @@ BASE_METADATA = {
     'post-boxes': {
         'selected': True,
         'endpoint_path': '/post-boxes',
+        'page_scan_perc': 0.25,
         'key_properties': ['id'],
         'replication_method': 'INCREMENTAL',
         'replication_key_coalesce': True,

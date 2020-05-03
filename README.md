@@ -1,9 +1,10 @@
 # [WORK-IN-PROGRESS] tap-easybill
 
 ## To do
-- Make clever guess on relevant page range, maybe (max page - X) and set X in config? As percentage?
 - Add `_sdc_extracted_at` timestamps
+- Add metrics and info logging
 - Handle empty state / full table replication
+- Improve limiting API pages, potentially save number of changed pages in last run
 - Check for string encoding problems
 - Use config for authorization
 - Add proper timezone to timestamps
