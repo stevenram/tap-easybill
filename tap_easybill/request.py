@@ -35,7 +35,7 @@ def tap_api(stream, state):
             yield data[each], page
 
         if r['page'] == r['pages']:
-        # if r['page'] == 3:
+        # if r['page'] == 2:
             break
         else:
             page += 1

@@ -77,7 +77,7 @@ def sync(config, state, catalog):
             row, bookmark_value = tidy_response(stream, row, needs_coalescing, replication_key)
 
             if bookmark_value > bookmark_state:
-                singer.write_record(stream.tap_stream_id, [row])
+                singer.write_record(stream.tap_stream_id, row)
 
                 if replication_sorted and not needs_coalescing:
                     singer.write_bookmark(state, stream.tap_stream_id, 'value', row[replication_key])
